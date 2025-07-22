@@ -28,12 +28,10 @@ def montar_estrutura(df):
 # Função para reservar componentes do estoque para os pedidos
 def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
     reservas = []
-    estoque_df.columns = estoque_df.columns.str.strip().str.upper()
-    cod_cols = [col for col in estoque_df.columns if 'COD' in col]
-    qtd_cols = [col for col in estoque_df.columns if 'QTDE' in col or 'DISP' in col]
-    if not cod_cols or not qtd_cols:
-        raise ValueError("Colunas 'COD' ou 'QTDE DISP' não encontradas no estoque.")
-    estoque_df = estoque_df.rename(columns={cod_cols[0]: 'COD', qtd_cols[0]: 'QTDE DISP'})
+    estoque_df = estoque_df.rename(columns={
+        'Produto': 'COD',
+        'Qtde Atual': 'QTDE DISP'
+    })
     estoque = estoque_df.set_index('COD').copy()
 
     for _, pedido in pedidos_df.iterrows():
@@ -60,16 +58,14 @@ def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
 # Função para montar com saldo e curva ABC
 def montar_com_estoque_restante(curva_df, estrutura_dict, estoque_df):
     resultados = []
-    estoque_df.columns = estoque_df.columns.str.strip().str.upper()
-    cod_cols = [col for col in estoque_df.columns if 'COD' in col]
-    qtd_cols = [col for col in estoque_df.columns if 'QTDE' in col or 'DISP' in col]
-    if not cod_cols or not qtd_cols:
-        raise ValueError("Colunas 'COD' ou 'QTDE DISP' não encontradas no estoque.")
-    estoque_df = estoque_df.rename(columns={cod_cols[0]: 'COD', qtd_cols[0]: 'QTDE DISP'})
+    estoque_df = estoque_df.rename(columns={
+        'Produto': 'COD',
+        'Qtde Atual': 'QTDE DISP'
+    })
     estoque = estoque_df.set_index('COD').copy()
 
     for _, linha in curva_df.iterrows():
-        cod_produto = str(linha['COD']).strip()
+        cod_produto = str(linha['Produto']).strip()
         max_montar = float('inf')
         if cod_produto not in estrutura_dict:
             continue
@@ -95,8 +91,6 @@ with st.spinner("🔄 Carregando dados..."):
 estrutura_dict = montar_estrutura(estrutura_df)
 
 st.success("✅ Dados carregados com sucesso!")
-st.subheader("📋 Estrutura de Produto")
-st.write(list(estrutura_dict.items())[:1])
 
 # Reservar para pedidos
 st.subheader("📦 Reservas para Pedidos")
