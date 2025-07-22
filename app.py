@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from io import BytesIO
 
 st.set_page_config(page_title="Painel de Montagem", layout="wide")
 st.title("🔧 Painel de Montagem de Turbos")
@@ -25,7 +26,7 @@ def montar_estrutura(df):
         estrutura[pai].append((comp, qtd))
     return estrutura
 
-# Função para reservar componentes do estoque para os pedidos
+# Função para reservar componentes do estoque para os pedidos (com reserva parcial)
 def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
     reservas = []
     estoque_df = estoque_df.rename(columns={
@@ -39,19 +40,33 @@ def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
         qtd_produzir = pedido['Produzir']
         if cod_produto not in estrutura_dict:
             continue
-        pode_atender = True
+
+        status = "Reservado"
+        componentes_reservados = []
         for comp, qtd_comp in estrutura_dict[cod_produto]:
             qtd_total = qtd_comp * qtd_produzir
-            if comp not in estoque.index or estoque.at[comp, 'QTDE DISP'] < qtd_total:
-                pode_atender = False
-                break
-        if pode_atender:
-            for comp, qtd_comp in estrutura_dict[cod_produto]:
-                qtd_total = qtd_comp * qtd_produzir
-                estoque.at[comp, 'QTDE DISP'] -= qtd_total
-            reservas.append({**pedido, 'Status': 'Reservado'})
-        else:
-            reservas.append({**pedido, 'Status': 'Estoque insuficiente'})
+            if comp in estoque.index and estoque.at[comp, 'QTDE DISP'] >= qtd_total:
+                componentes_reservados.append((comp, qtd_total))
+            elif comp in estoque.index and estoque.at[comp, 'QTDE DISP'] > 0:
+                componentes_reservados.append((comp, estoque.at[comp, 'QTDE DISP']))
+                status = "Reservado Parcialmente"
+            else:
+                status = "Reservado Parcialmente" if componentes_reservados else "Não Reservado"
+
+        for comp, qtd in componentes_reservados:
+            estoque.at[comp, 'QTDE DISP'] -= qtd
+
+        reservas.append({
+            'Cliente': pedido['Cliente'],
+            'Nome': pedido['Nome'],
+            'Tp.Doc': pedido['Tp.Doc'],
+            'Pedido': pedido['Pedido'],
+            'Produto': pedido['Produto'],
+            'Descricao': pedido['Descricao'],
+            'Qtde Abe. Pronta': pedido['Qtde. Abe'],
+            'Produzir': pedido['Produzir'],
+            'Status': status
+        })
 
     return pd.DataFrame(reservas), estoque.reset_index()
 
@@ -104,7 +119,11 @@ st.dataframe(montagem_df)
 
 # Baixar resultados
 st.subheader("⬇️ Baixar Resultados")
-reserva_excel = reservas_df.to_excel(index=False)
-montagem_excel = montagem_df.to_excel(index=False)
-st.download_button("Baixar Reservas", data=reserva_excel, file_name="reservas.xlsx")
-st.download_button("Baixar Montagem", data=montagem_excel, file_name="montagem_curva_abc.xlsx")
+reserva_buffer = BytesIO()
+montagem_buffer = BytesIO()
+reservas_df.to_excel(reserva_buffer, index=False)
+montagem_df.to_excel(montagem_buffer, index=False)
+reserva_buffer.seek(0)
+montagem_buffer.seek(0)
+st.download_button("Baixar Reservas", data=reserva_buffer, file_name="reservas.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+st.download_button("Baixar Montagem", data=montagem_buffer, file_name="montagem_curva_abc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
