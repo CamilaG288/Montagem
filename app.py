@@ -13,7 +13,6 @@ URL_PEDIDOS = "https://github.com/CamilaG288/Montagem/raw/main/PEDIDOS.xlsx"
 
 # Função para montar o dicionário de estrutura
 @st.cache_data
-
 def montar_estrutura(df):
     estrutura = {}
     df.columns = df.columns.str.strip()
@@ -30,9 +29,11 @@ def montar_estrutura(df):
 def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
     reservas = []
     estoque_df.columns = estoque_df.columns.str.strip().str.upper()
-    if 'COD' not in estoque_df.columns:
-        cod_col = [col for col in estoque_df.columns if 'COD' in col][0]
-        estoque_df = estoque_df.rename(columns={cod_col: 'COD'})
+    cod_cols = [col for col in estoque_df.columns if 'COD' in col]
+    qtd_cols = [col for col in estoque_df.columns if 'QTDE' in col or 'DISP' in col]
+    if not cod_cols or not qtd_cols:
+        raise ValueError("Colunas 'COD' ou 'QTDE DISP' não encontradas no estoque.")
+    estoque_df = estoque_df.rename(columns={cod_cols[0]: 'COD', qtd_cols[0]: 'QTDE DISP'})
     estoque = estoque_df.set_index('COD').copy()
 
     for _, pedido in pedidos_df.iterrows():
@@ -60,9 +61,11 @@ def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
 def montar_com_estoque_restante(curva_df, estrutura_dict, estoque_df):
     resultados = []
     estoque_df.columns = estoque_df.columns.str.strip().str.upper()
-    if 'COD' not in estoque_df.columns:
-        cod_col = [col for col in estoque_df.columns if 'COD' in col][0]
-        estoque_df = estoque_df.rename(columns={cod_col: 'COD'})
+    cod_cols = [col for col in estoque_df.columns if 'COD' in col]
+    qtd_cols = [col for col in estoque_df.columns if 'QTDE' in col or 'DISP' in col]
+    if not cod_cols or not qtd_cols:
+        raise ValueError("Colunas 'COD' ou 'QTDE DISP' não encontradas no estoque.")
+    estoque_df = estoque_df.rename(columns={cod_cols[0]: 'COD', qtd_cols[0]: 'QTDE DISP'})
     estoque = estoque_df.set_index('COD').copy()
 
     for _, linha in curva_df.iterrows():
