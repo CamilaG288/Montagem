@@ -38,6 +38,22 @@ def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
     for _, pedido in pedidos_df.iterrows():
         cod_produto = str(pedido['Produto']).strip()
         qtd_produzir = pedido['Produzir']
+
+        # Se não há mais nada para produzir, marcar como pronto
+        if qtd_produzir == 0:
+            reservas.append({
+                'Cliente': pedido['Cliente'],
+                'Nome': pedido['Nome'],
+                'Tp.Doc': pedido['Tp.Doc'],
+                'Pedido': pedido['Pedido'],
+                'Produto': pedido['Produto'],
+                'Descricao': pedido['Descricao'],
+                'Qtde Abe. Pronta': pedido['Qtde. Abe'],
+                'Produzir': pedido['Produzir'],
+                'Status': "Pronto"
+            })
+            continue
+
         if cod_produto not in estrutura_dict:
             continue
 
