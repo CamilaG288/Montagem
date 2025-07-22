@@ -29,6 +29,10 @@ def montar_estrutura(df):
 # Função para reservar componentes do estoque para os pedidos
 def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
     reservas = []
+    estoque_df.columns = estoque_df.columns.str.strip().str.upper()
+    if 'COD' not in estoque_df.columns:
+        cod_col = [col for col in estoque_df.columns if 'COD' in col][0]
+        estoque_df = estoque_df.rename(columns={cod_col: 'COD'})
     estoque = estoque_df.set_index('COD').copy()
 
     for _, pedido in pedidos_df.iterrows():
@@ -55,7 +59,12 @@ def reservar_para_pedidos(pedidos_df, estrutura_dict, estoque_df):
 # Função para montar com saldo e curva ABC
 def montar_com_estoque_restante(curva_df, estrutura_dict, estoque_df):
     resultados = []
+    estoque_df.columns = estoque_df.columns.str.strip().str.upper()
+    if 'COD' not in estoque_df.columns:
+        cod_col = [col for col in estoque_df.columns if 'COD' in col][0]
+        estoque_df = estoque_df.rename(columns={cod_col: 'COD'})
     estoque = estoque_df.set_index('COD').copy()
+
     for _, linha in curva_df.iterrows():
         cod_produto = str(linha['COD']).strip()
         max_montar = float('inf')
